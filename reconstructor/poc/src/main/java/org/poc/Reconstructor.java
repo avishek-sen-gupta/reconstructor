@@ -7,6 +7,10 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Reconstructor
@@ -14,10 +18,11 @@ import java.io.IOException;
 public class Reconstructor {
     /**
      * main
+     *
      * @param args
      */
     public static void main(String[] args) throws IOException {
-        String fileName = "/Users/asgupta/Downloads/mbrdi-poc/V7523438";
+        String fileName = "/Users/asgupta/Downloads/mbrdi-poc/V7523438.txt.original";
         CharStream codePointCharStream = CharStreams.fromFileName(fileName);
         org.poc.IdmsCopyLexer antlrLexer = new org.poc.IdmsCopyLexer(codePointCharStream);
         antlrLexer.removeErrorListeners();
@@ -26,9 +31,16 @@ public class Reconstructor {
         antlrLexer.addErrorListener(listener);
         org.poc.IdmsCopyParser antlrParser = new org.poc.IdmsCopyParser(tokens);
 //        antlrParser.setErrorHandler(new SkippingErrorStrategy());
+        ArrayList<org.poc.IdmsCopyParser.CopyIdmsStatementContext> copyStatements = new ArrayList<>();
         org.poc.IdmsCopyParser.StartRuleContext tree = antlrParser.startRule();
         ParseTreeWalker x = new ParseTreeWalker();
-        x.walk(new PocParseTreeListener(), tree);
+        x.walk(new PocParseTreeListener(copyStatements), tree);
+        copyStatements.forEach(copyStatement -> {
+            System.out.println(copyStatement.copyIdmsOptions().copyIdmsSource().copySource().getText() + " -> " + copyStatement.getText());
+        });
+
+        List<String> unexpandedProgramLines = Files.readAllLines(Paths.get(fileName));
+        List<CopyStatementLineBoundary> copyBookInlineBoundaries = copyStatements.stream().map(copyStatement -> new CopyStatementLineBoundary(copyStatement, unexpandedProgramLines)).toList();
 
 //        List<ParseTree> nodes = tree.children.stream().filter(child -> !(child instanceof ErrorNode)).collect(Collectors.toList());
 
